@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đồng hồ Pomodoro</title>
+<meta name="theme-color" content="#120605">
+<meta name="description" content="Đồng hồ Pomodoro 3D: tập trung 25 phút, nghỉ 5 phút.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pomodoro">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: hiện đại, khối nổi, tập trung — một thiết bị hẹn giờ cao cấp trên bàn
+   IDEA: núm hẹn giờ 3D: viền kim loại nổi, mặt lõm, vòng tiến trình phát sáng
+   PICTURE: mặt đồng hồ 3D chiếm phần lớn màn hình đầu, chữ số co theo kích thước mặt
+   COLOUR and TYPE: đỏ cà chua (tập trung), xanh lục (nghỉ ngắn), xanh lam (nghỉ dài) trên nền tối sâu; Be Vietnam Pro
+   LAYOUT: một cột: tiêu đề, tab, mặt đồng hồ, nút, thẻ kính việc đang làm, cài đặt */
+:root{color-scheme:dark;--h1:#ff5a47;--h2:#c9261a;--glow:255,90,71;--bg1:#2a0e0b;--bg2:#120605;--ink:#fff;--soft:rgba(255,255,255,.66);--glass:rgba(255,255,255,.06);--edge:rgba(255,255,255,.12)}
+body.short{--h1:#3ddc84;--h2:#14904f;--glow:61,220,132;--bg1:#0b2417;--bg2:#05110b}
+body.long{--h1:#5aa8ff;--h2:#2457c9;--glow:90,168,255;--bg1:#0c1a33;--bg2:#050b17}
+*{box-sizing:border-box;min-width:0}
+html{background:var(--bg2)}
+body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.55 "Be Vietnam Pro",system-ui,sans-serif;overflow-x:clip;
+  background:radial-gradient(120% 70% at 50% 0%,var(--bg1),var(--bg2) 70%) fixed;transition:background .8s}
+main{max-width:480px;margin:0 auto;padding:22px 16px 48px;display:flex;flex-direction:column;gap:22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:22px;font-weight:800;margin:0;display:flex;align-items:center;gap:10px;letter-spacing:-.01em}
+.logo{width:30px;height:30px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,#fff8 0 8%,transparent 9%),radial-gradient(circle at 40% 35%,var(--h1),var(--h2) 75%);box-shadow:0 4px 10px rgba(var(--glow),.45),inset 0 -3px 6px rgba(0,0,0,.35)}
+.pill{font-size:13px;font-weight:600;color:var(--soft);background:var(--glass);border:1px solid var(--edge);padding:6px 12px;border-radius:99px;white-space:nowrap}
+.modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:5px;border-radius:16px;background:rgba(0,0,0,.35);box-shadow:inset 0 2px 6px rgba(0,0,0,.5),0 1px 0 var(--edge)}
+.modes button{border:0;background:none;color:var(--soft);font:600 14px "Be Vietnam Pro",sans-serif;min-height:44px;border-radius:12px;cursor:pointer;white-space:nowrap;padding:0 4px;transition:background .3s,color .3s}
+.modes button.on{color:#fff;background:linear-gradient(180deg,var(--h1),var(--h2));box-shadow:0 6px 14px rgba(var(--glow),.35),inset 0 1px 0 rgba(255,255,255,.35)}
+/* Mặt đồng hồ 3D */
+.dial{position:relative;width:min(86vw,340px);aspect-ratio:1;margin:6px auto 0;container-type:inline-size;border-radius:50%;
+  background:linear-gradient(145deg,#3a3a40,#121216);
+  box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 80px rgba(var(--glow),.18),inset 0 2px 1px rgba(255,255,255,.18),inset 0 -3px 6px rgba(0,0,0,.6)}
+.dial .well{position:absolute;inset:6%;border-radius:50%;background:radial-gradient(circle at 50% 35%,#24242a,#0b0b0e 75%);box-shadow:inset 0 10px 24px rgba(0,0,0,.85),inset 0 -2px 2px rgba(255,255,255,.06)}
+.dial svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+#arc{transition:stroke-dashoffset .35s linear;filter:drop-shadow(0 0 6px rgba(var(--glow),.8))}
+.knob{transition:cx .35s linear,cy .35s linear}
+.face{position:absolute;inset:22%;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  background:radial-gradient(circle at 40% 30%,#2e2e35,#16161a 70%);box-shadow:0 12px 24px rgba(0,0,0,.6),inset 0 1px 1px rgba(255,255,255,.14)}
+.time{font-size:15cqi;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap;
+  background:linear-gradient(180deg,#fff 30%,#cfcfd6);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.label{color:var(--soft);font-size:clamp(12px,4cqi,15px);margin-top:2.5cqi;white-space:nowrap}
+.state{font-size:clamp(11px,3.4cqi,13px);font-weight:700;color:rgb(var(--glow));margin-bottom:2cqi;white-space:nowrap}
+@media(prefers-reduced-motion:reduce){#arc,.knob,body,.modes button{transition:none}}
+/* Nút 3D */
+.ctrl{display:flex;justify-content:center;align-items:center;gap:18px}
+.main{flex:0 1 180px;min-height:62px;border:0;border-radius:20px;color:#fff;font:800 18px "Be Vietnam Pro",sans-serif;letter-spacing:.02em;cursor:pointer;
+  background:linear-gradient(180deg,var(--h1),var(--h2));
+  box-shadow:0 7px 0 rgba(0,0,0,.45),0 12px 28px rgba(var(--glow),.45),inset 0 2px 0 rgba(255,255,255,.35),inset 0 -3px 0 rgba(0,0,0,.2);transition:transform .08s,box-shadow .08s}
+.main:active{transform:translateY(5px);box-shadow:0 2px 0 rgba(0,0,0,.45),0 6px 14px rgba(var(--glow),.35),inset 0 2px 0 rgba(255,255,255,.3)}
+.ico{width:54px;height:54px;flex:none;border-radius:50%;border:0;color:#fff;cursor:pointer;display:grid;place-items:center;
+  background:linear-gradient(145deg,#34343b,#17171b);box-shadow:0 6px 14px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.15)}
+.ico:active{transform:translateY(2px)}
+.ico svg{width:22px;height:22px}
+button:focus-visible,input:focus-visible{outline:3px solid rgb(var(--glow));outline-offset:3px}
+.dots{display:flex;justify-content:center;gap:10px}
+.dots i{width:12px;height:12px;border-radius:50%;background:rgba(0,0,0,.45);box-shadow:inset 0 2px 3px rgba(0,0,0,.6),0 1px 0 var(--edge)}
+.dots i.f{background:radial-gradient(circle at 35% 30%,#fff9 0 15%,transparent 20%),linear-gradient(180deg,var(--h1),var(--h2));box-shadow:0 0 10px rgba(var(--glow),.7)}
+/* Thẻ kính */
+.box{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid var(--edge);border-radius:20px;padding:18px;box-shadow:0 18px 40px rgba(0,0,0,.35);backdrop-filter:blur(12px)}
+.box h2{font-size:15px;margin:0 0 10px;font-weight:600}
+#task{width:100%;font:16px "Be Vietnam Pro",sans-serif;padding:13px 14px;border-radius:12px;border:0;background:rgba(0,0,0,.35);color:#fff;box-shadow:inset 0 2px 6px rgba(0,0,0,.5),0 1px 0 var(--edge)}
+#task::placeholder{color:rgba(255,255,255,.4)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.stats div{background:rgba(0,0,0,.28);border-radius:14px;padding:12px 14px;box-shadow:inset 0 1px 0 var(--edge)}
+.stats b{display:block;font-size:28px;font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums;color:rgb(var(--glow))}
+.stats span{color:var(--soft);font-size:13px}
+details summary{cursor:pointer;font-weight:600;min-height:28px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--soft);border-bottom:2px solid var(--soft);transform:rotate(45deg);transition:transform .2s}
+details[open] summary::after{transform:rotate(-135deg)}
+.set{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin-top:16px}
+.set label{font-size:15px}
+.num{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.3);border-radius:12px;padding:3px}
+.num button{width:40px;height:40px;border-radius:10px;border:0;background:linear-gradient(145deg,#34343b,#1b1b20);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12)}
+.num output{width:34px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+.tog{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;font-size:15px;min-height:44px;cursor:pointer}
+.tog input{appearance:none;width:48px;height:28px;border-radius:99px;background:rgba(0,0,0,.4);box-shadow:inset 0 2px 4px rgba(0,0,0,.6);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.tog input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,#fff,#cfcfd6);box-shadow:0 2px 4px rgba(0,0,0,.5);transition:transform .2s}
+.tog input:checked{background:linear-gradient(180deg,var(--h1),var(--h2))}
+.tog input:checked::after{transform:translateX(20px)}
+.sounds{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;font-size:15px}
+.sounds>span{flex:1 0 100%}
+.seg{display:flex;gap:4px;padding:4px;border-radius:12px;background:rgba(0,0,0,.35);flex:1 1 auto}
+.seg button{flex:1;min-height:40px;border:0;border-radius:9px;background:none;color:var(--soft);font:600 14px "Be Vietnam Pro",sans-serif;cursor:pointer;white-space:nowrap}
+.seg button.on{color:#fff;background:linear-gradient(180deg,var(--h1),var(--h2))}
+.test{min-height:44px;padding:0 14px;border:0;border-radius:12px;color:#fff;font:600 14px "Be Vietnam Pro",sans-serif;cursor:pointer;background:linear-gradient(145deg,#34343b,#1b1b20);box-shadow:0 2px 4px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12)}
+.hint{color:var(--soft);font-size:13px;margin:6px 0 0}
+.reset{margin-top:6px;background:none;border:0;color:var(--soft);text-decoration:underline;font:14px "Be Vietnam Pro",sans-serif;cursor:pointer;min-height:44px;padding:0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(140px);background:linear-gradient(180deg,#2e2e35,#1a1a1f);color:#fff;border:1px solid var(--edge);padding:13px 20px;border-radius:14px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.5);transition:transform .35s;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1><span class="logo"></span>Pomodoro</h1>
+    <span class="pill" id="round">Lượt 1/4</span>
+  </header>
+  <div class="modes" role="tablist">
+    <button data-m="work" class="on">Tập trung</button>
+    <button data-m="short">Nghỉ ngắn</button>
+    <button data-m="long">Nghỉ dài</button>
+  </div>
+  <div class="dial">
+    <div class="well"></div>
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--h1)"/><stop offset="1" stop-color="var(--h2)"/></linearGradient>
+      </defs>
+      <g id="ticks"></g>
+      <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="9"/>
+      <circle id="arc" cx="100" cy="100" r="80" fill="none" stroke="url(#g)" stroke-width="9" stroke-linecap="round" stroke-dasharray="502.65" stroke-dashoffset="0"/>
+      <circle class="knob" id="knob" cx="180" cy="100" r="7" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+    </svg>
+    <div class="face">
+      <div class="state" id="state">SẴN SÀNG</div>
+      <div class="time" id="time">25:00</div>
+      <div class="label" id="lbl">Đến lúc tập trung</div>
+    </div>
+  </div>
+  <div class="ctrl">
+    <button class="ico" id="resetBtn" aria-label="Đặt lại"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+    <button class="main" id="startBtn">BẮT ĐẦU</button>
+    <button class="ico" id="skipBtn" aria-label="Bỏ qua"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5l9 7-9 7z"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg></button>
+  </div>
+  <div class="dots" id="dots"></div>
+  <section class="box">
+    <h2>Đang làm việc gì?</h2>
+    <input id="task" placeholder="Ví dụ: Viết báo cáo tháng" maxlength="80">
+    <div class="stats">
+      <div><b id="sDone">0</b><span>pomodoro hôm nay</span></div>
+      <div><b id="sMin">0</b><span>phút tập trung</span></div>
+    </div>
+  </section>
+  <details class="box">
+    <summary>Cài đặt</summary>
+    <div class="set" id="sets"></div>
+    <label class="tog">Tự chuyển sang phiên tiếp theo <input type="checkbox" id="auto"></label>
+    <label class="tog">Chuông báo khi hết giờ <input type="checkbox" id="snd" checked></label>
+    <div class="sounds"><span>Âm báo</span><div class="seg" id="sndSel"></div><button class="test" id="testBtn">Nghe thử</button></div>
+    <label class="tog">Chạy ngầm (chuông kêu cả khi tắt màn hình) <input type="checkbox" id="bg"></label>
+    <label class="tog">Thông báo + rung khi hết giờ (lúc dùng app khác) <input type="checkbox" id="noti"></label>
+    <label class="tog">Giữ màn hình luôn sáng khi chạy <input type="checkbox" id="wake"></label>
+    <p class="hint" id="bgHint">Khi bật chạy ngầm, chuông phát bằng âm lượng nhạc/media của điện thoại, kể cả khi máy đang để im lặng.</p>
+    <button class="reset" id="clearDay">Xóa thống kê hôm nay</button>
+  </details>
+</main>
+<div class="toast" id="toast"></div>
+<audio id="bgAudio" preload="auto" playsinline></audio>
+<script>
+{
+const $=id=>document.getElementById(id);
+const LBL={work:'Đến lúc tập trung',short:'Nghỉ ngắn, thư giãn chút',long:'Nghỉ dài, bạn xứng đáng'};
+const FIELDS=[['work','Tập trung (phút)',1,90],['short','Nghỉ ngắn (phút)',1,30],['long','Nghỉ dài (phút)',1,60],['every','Nghỉ dài sau mỗi (lượt)',2,8]];
+const today=new Date().toDateString();
+let S={work:25,short:5,long:15,every:4,auto:false,snd:true,tone:'bell',noti:true,bg:true,wake:false,task:'',day:today,done:0,min:0,cycle:0};
+try{Object.assign(S,JSON.parse(localStorage.getItem('pomo')||'{}'))}catch(e){}
+if(S.day!==today){S.day=today;S.done=0;S.min=0;S.cycle=0}
+const save=()=>{try{localStorage.setItem('pomo',JSON.stringify(S))}catch(e){}};
+let mode='work',left=S.work*60,total=left,running=false,endAt=0,tick=null,actx=null;
+const R=80,C=2*Math.PI*R;
+$('ticks').innerHTML=Array.from({length:60},(_,i)=>{const a=i/60*2*Math.PI,big=i%5===0,r1=big?91:93,r2=96;
+  return `<line x1="${100+r1*Math.cos(a)}" y1="${100+r1*Math.sin(a)}" x2="${100+r2*Math.cos(a)}" y2="${100+r2*Math.sin(a)}" stroke="rgba(255,255,255,${big?.45:.18})" stroke-width="${big?1.6:1}" stroke-linecap="round"/>`}).join('');
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function render(){
+  const f=total?left/total:0;
+  $('time').textContent=fmt(left);
+  $('arc').style.strokeDashoffset=C*(1-f);
+  const a=f*2*Math.PI;$('knob').setAttribute('cx',100+R*Math.cos(a));$('knob').setAttribute('cy',100+R*Math.sin(a));
+  $('lbl').textContent=LBL[mode];
+  $('state').textContent=running?'ĐANG CHẠY':(left<total?'TẠM DỪNG':'SẴN SÀNG');
+  $('startBtn').textContent=running?'TẠM DỪNG':(left<total?'TIẾP TỤC':'BẮT ĐẦU');
+  document.body.className=mode==='work'?'':mode;
+  document.querySelectorAll('.modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));
+  $('round').textContent='Lượt '+(S.cycle%S.every+1)+'/'+S.every;
+  $('dots').innerHTML=Array.from({length:S.every},(_,i)=>`<i class="${i<S.cycle%S.every?'f':''}"></i>`).join('');
+  $('sDone').textContent=S.done;$('sMin').textContent=S.min;
+  document.title=(running?fmt(left)+' · ':'')+(mode==='work'?'Tập trung':'Nghỉ')+' — Pomodoro';
+}
+function setMode(m,auto,keep){keep?halt():stop();mode=m;total=left=S[m]*60;render();if(auto&&S.auto)start()}
+function start(){
+  ensureAudio();askNoti();
+  running=true;endAt=Date.now()+left*1000;clearInterval(tick);tick=setInterval(step,250);render();
+  if(S.bg){if(chiming)pendingLoad=true;else loadBg()}
+  wakeOn();
+}
+function halt(){running=false;clearInterval(tick);wakeOff();render()}
+function stop(){halt();stopBg()}
+function step(){left=Math.max(0,Math.round((endAt-Date.now())/1000));render();if(left===0)finish()}
+const TONES={bell:'Chuông',chime:'Leng keng',beep:'Bíp'};
+// [tần số Hz, bắt đầu (giây), độ dài (giây), âm lượng]
+const NOTES={
+  bell:[0,1.1].flatMap(t=>[[660,t,1.6,.35],[1320,t,1.0,.12],[1980,t,.6,.06]]),
+  chime:[523.25,659.25,783.99,1046.5].map((f,i)=>[f,i*.18,1.2,.25]),
+  beep:[0,.35,.7].map(t=>[880,t,.3,.3])
+};
+function ensureAudio(){
+  if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+  if(actx&&actx.state==='suspended')actx.resume();
+}
+function play(tone){
+  if(!actx||!NOTES[tone])return;
+  try{NOTES[tone].forEach(([f,t,d,v])=>{
+    const o=actx.createOscillator(),g=actx.createGain(),at=actx.currentTime+t;
+    o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(v,at+.01);g.gain.exponentialRampToValueAtTime(.0001,at+d);
+    o.connect(g).connect(actx.destination);o.start(at);o.stop(at+d+.05);
+  })}catch(e){}
+}
+/* ---- Chạy ngầm: file WAV = khoảng lặng + chuông ---- */
+const SR=4000,bgA=$('bgAudio');let bgUrl=null,chiming=false,pendingLoad=false,bgSilence=0;
+function buildWav(silence,tone){
+  const notes=NOTES[tone]||[];
+  const tail=notes.length?Math.max(...notes.map(n=>n[1]+n[2]))+.3:.3;
+  const n=Math.ceil((silence+tail)*SR),buf=new Uint8Array(44+n),dv=new DataView(buf.buffer);
+  const str=(o,t)=>{for(let i=0;i<t.length;i++)buf[o+i]=t.charCodeAt(i)};
+  str(0,'RIFF');dv.setUint32(4,36+n,true);str(8,'WAVEfmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
+  dv.setUint32(24,SR,true);dv.setUint32(28,SR,true);dv.setUint16(32,1,true);dv.setUint16(34,8,true);str(36,'data');dv.setUint32(40,n,true);
+  const mix=new Float32Array(Math.ceil(tail*SR)),off=Math.floor(silence*SR);
+  for(const [f,t,d,v] of notes){const s0=Math.floor(t*SR),len=Math.floor(d*SR);
+    for(let i=0;i<len&&s0+i<mix.length;i++){const tt=i/SR;mix[s0+i]+=v*Math.min(1,tt/.01)*Math.exp(-5*tt/d)*Math.sin(2*Math.PI*f*tt)}}
+  buf.fill(128,44);
+  for(let i=0;i<mix.length&&44+off+i<buf.length;i++)buf[44+off+i]=Math.max(0,Math.min(255,Math.round(128+mix[i]*190)));
+  return new Blob([buf],{type:'audio/wav'});
+}
+const NAME={work:'Tập trung',short:'Nghỉ ngắn',long:'Nghỉ dài'};
+function mediaMeta(){
+  if(!('mediaSession' in navigator))return;
+  try{
+    navigator.mediaSession.metadata=new MediaMetadata({title:NAME[mode]+' · '+S[mode]+' phút',artist:S.task||'Pomodoro',album:'Đồng hồ Pomodoro',
+      artwork:[{src:'icons/icon-192.png',sizes:'192x192',type:'image/png'},{src:'icons/icon-512.png',sizes:'512x512',type:'image/png'}]});
+    navigator.mediaSession.playbackState=running?'playing':'paused';
+  }catch(e){}
+}
+function loadBg(){
+  if(!running||!S.bg)return;
+  const rem=Math.max(0,(endAt-Date.now())/1000);
+  if(bgUrl)URL.revokeObjectURL(bgUrl);
+  bgSilence=rem;bgUrl=URL.createObjectURL(buildWav(rem,S.snd?S.tone:null));
+  bgA.src=bgUrl;bgA.loop=false;
+  const p=bgA.play();if(p&&p.catch)p.catch(()=>{});
+  mediaMeta();
+}
+function stopBg(){pendingLoad=false;chiming=false;try{bgA.pause()}catch(e){}mediaMeta()}
+bgA.addEventListener('ended',()=>{
+  if(chiming){chiming=false;if(pendingLoad){pendingLoad=false;loadBg()}else mediaMeta();return}
+  if(running&&Date.now()>=endAt-1500){left=0;finish()}
+});
+bgA.addEventListener('timeupdate',()=>{if(running&&!chiming&&bgA.currentTime>=bgSilence-.05){left=0;finish()}});
+bgA.addEventListener('loadedmetadata',()=>{try{navigator.mediaSession.setPositionState({duration:bgA.duration,playbackRate:1,position:0})}catch(e){}});
+if('mediaSession' in navigator){
+  const h=(a,f)=>{try{navigator.mediaSession.setActionHandler(a,f)}catch(e){}};
+  h('play',()=>{if(!running)start()});h('pause',()=>{if(running)stop()});h('nexttrack',()=>finish(false));
+}
+/* ---- Giữ màn hình sáng ---- */
+let wl=null;
+async function wakeOn(){if(!S.wake||!running||document.hidden||!('wakeLock' in navigator))return;try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
+function wakeOff(){try{wl&&wl.release()}catch(e){}wl=null}
+function beep(){
+  if(S.snd&&!chiming)play(S.tone);
+  try{navigator.vibrate&&navigator.vibrate([300,120,300,120,300])}catch(e){}
+}
+function notify(text){
+  if(!S.noti||!('Notification' in window)||Notification.permission!=='granted'||!document.hidden)return;
+  const opt={body:text,icon:'icons/icon-192.png',badge:'icons/icon-192.png',vibrate:[500,200,500,200,500,200,800],
+    tag:'pomodoro',renotify:true,requireInteraction:true,silent:false};
+  const fb=()=>{try{new Notification('⏰ Hết giờ — Pomodoro',opt)}catch(e){}};
+  try{navigator.serviceWorker?navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification('⏰ Hết giờ — Pomodoro',opt):fb()).catch(fb):fb()}catch(e){fb()}
+}
+async function askNoti(){
+  if(!S.noti||!('Notification' in window)||Notification.permission!=='default')return;
+  try{await Notification.requestPermission()}catch(e){}
+}
+function toast(t){notify(t);const el=$('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500)}
+function finish(complete=true){
+  if(!running&&complete&&left>0)return;
+  if(complete){chiming=S.bg&&S.snd&&!bgA.paused&&!bgA.ended;halt();beep()}else stop();
+  if(mode==='work'){
+    if(complete){S.done++;S.min+=S.work}
+    S.cycle++;save();
+    const isLong=S.cycle%S.every===0;
+    toast(isLong?'Xong '+S.every+' lượt! Nghỉ dài nhé.':'Hoàn thành một pomodoro! Nghỉ ngắn thôi.');
+    setMode(isLong?'long':'short',true,true);
+  }else{toast('Hết giờ nghỉ. Quay lại tập trung nào!');setMode('work',true,true)}
+}
+$('startBtn').onclick=()=>running?stop():start();
+$('resetBtn').onclick=()=>setMode(mode);
+$('skipBtn').onclick=()=>finish(false);
+document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+$('task').value=S.task;$('task').oninput=e=>{S.task=e.target.value;save()};
+$('sets').innerHTML=FIELDS.map(([k,l])=>`<label>${l}</label><div class="num"><button data-k="${k}" data-d="-1" aria-label="Giảm">−</button><output id="o-${k}">${S[k]}</output><button data-k="${k}" data-d="1" aria-label="Tăng">+</button></div>`).join('');
+$('sets').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const f=FIELDS.find(x=>x[0]===b.dataset.k);
+  S[f[0]]=Math.min(f[3],Math.max(f[2],S[f[0]]+Number(b.dataset.d)));
+  $('o-'+f[0]).textContent=S[f[0]];save();
+  if(!running&&left===total&&f[0]===mode){total=left=S[mode]*60}
+  render();
+};
+$('auto').checked=S.auto;$('auto').onchange=e=>{S.auto=e.target.checked;save()};
+$('snd').checked=S.snd;$('snd').onchange=e=>{S.snd=e.target.checked;save();if(running&&S.bg&&!chiming)loadBg()};
+$('sndSel').innerHTML=Object.entries(TONES).map(([k,l])=>`<button data-t="${k}">${l}</button>`).join('');
+const markTone=()=>document.querySelectorAll('#sndSel button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tone));markTone();
+$('sndSel').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.tone=b.dataset.t;save();markTone();if(running&&S.bg&&!chiming)loadBg();ensureAudio();play(S.tone)};
+$('testBtn').onclick=()=>{ensureAudio();play(S.tone)};
+$('bg').checked=S.bg;$('bg').onchange=e=>{S.bg=e.target.checked;save();if(S.bg&&running)loadBg();if(!S.bg)stopBg()};
+$('wake').checked=S.wake;$('wake').onchange=e=>{S.wake=e.target.checked;save();S.wake?wakeOn():wakeOff()};
+$('noti').checked=S.noti;
+$('noti').onchange=async e=>{
+  if(e.target.checked){
+    if(!('Notification' in window)){e.target.checked=false;toast('Trình duyệt này không hỗ trợ thông báo');return}
+    let p=Notification.permission;
+    if(p==='default'){try{p=await Notification.requestPermission()}catch(x){}}
+    if(p!=='granted'){e.target.checked=false;toast('Bạn cần cho phép thông báo trong cài đặt trình duyệt');return}
+  }
+  S.noti=e.target.checked;save();
+};
+$('clearDay').onclick=()=>{S.done=0;S.min=0;S.cycle=0;save();render();toast('Đã xóa thống kê hôm nay')};
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'){e.preventDefault();$('startBtn').click()}});
+total=left=S.work*60;render();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(running){step();wakeOn()}}});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+}
+</script>
+</body>
+</html>

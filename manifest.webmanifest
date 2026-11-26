@@ -1,0 +1,17 @@
+{
+  "name": "Đồng hồ Pomodoro",
+  "short_name": "Pomodoro",
+  "description": "Đồng hồ Pomodoro 3D: tập trung 25 phút, nghỉ 5 phút.",
+  "lang": "vi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#120605",
+  "theme_color": "#120605",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
