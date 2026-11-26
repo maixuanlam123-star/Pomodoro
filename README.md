@@ -12,16 +12,18 @@
 
 ## Đưa lên GitHub Pages
 1. Tạo repository mới trên GitHub, ví dụ `pomodoro`.
-2. Tải toàn bộ file trong thư mục này lên (giữ nguyên thư mục `icons`).
+2. Tải **tất cả** file lên cùng một chỗ với `index.html` (không có thư mục con): index.html, manifest.json, sw.js, favicon.png, icon-192.png, icon-512.png, icon-maskable.png, apple-touch-icon.png.
 3. Vào **Settings → Pages**. Ở **Source** chọn **Deploy from a branch**, chọn nhánh `main`, thư mục `/ (root)`, bấm **Save**.
 4. Sau 1–2 phút, app có ở địa chỉ: `https://<tên-tài-khoản>.github.io/pomodoro/`
 
 ## Cài lên điện thoại
+- Trong app có nút **⬇ Cài app** ở góc trên: bấm để cài hoặc xem hướng dẫn và kiểm tra file còn thiếu.
+- **Samsung Internet:** menu ☰ → **Thêm trang vào** → **Màn hình chính**.
 - **Android (Chrome):** mở địa chỉ trên → menu ⋮ → **Cài đặt ứng dụng** / **Thêm vào màn hình chính**.
 - **iPhone (Safari):** mở địa chỉ trên → nút Chia sẻ → **Thêm vào MH chính**.
 
 ## Cập nhật app
-Khi sửa file, mở `sw.js` và tăng số phiên bản ở dòng `const CACHE = 'pomodoro-v1'` (thành `v2`, `v3`...). Như vậy máy đã cài sẽ tải bản mới.
+Khi sửa file, mở `sw.js` và tăng số phiên bản ở dòng `const CACHE = 'pomodoro-v3'` (thành `v2`, `v3`...). Như vậy máy đã cài sẽ tải bản mới.
 
 ## Chạy ngầm (chuông + rung khi đang dùng app khác)
 App bật sẵn chế độ **Chạy ngầm**. Khi bấm Bắt đầu, app tạo một file âm thanh gồm khoảng lặng đúng bằng thời gian còn lại, rồi đến tiếng chuông, và phát như nhạc. Nhờ vậy:
@@ -37,10 +39,10 @@ Lưu ý:
 
 ## Cấu trúc
 ```
-index.html            App (HTML + CSS + JS trong một file)
-manifest.webmanifest  Thông tin để cài app
-sw.js                 Service worker (chạy offline, thông báo)
+index.html          App (HTML + CSS + JS trong một file)
+manifest.json       Thông tin để cài app
+sw.js               Service worker (chạy offline, thông báo)
 favicon.png
-icons/                Icon app
-.nojekyll             Để GitHub Pages phục vụ file nguyên trạng
+icon-192.png  icon-512.png  icon-maskable.png  apple-touch-icon.png
+.nojekyll           Để GitHub Pages phục vụ file nguyên trạng
 ```

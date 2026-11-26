@@ -1,19 +1,20 @@
 // Service worker: lưu app để mở được khi không có mạng.
 // Mỗi lần sửa file, tăng số phiên bản để máy người dùng tải bản mới.
-const CACHE = 'pomodoro-v2';
+const CACHE = 'pomodoro-v3';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.webmanifest',
+  './manifest.json',
   './favicon.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/maskable-512.png',
-  './icons/apple-touch-icon.png'
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable.png',
+  './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // Thêm từng file, thiếu file nào cũng không làm hỏng cả app
+  e.waitUntil(caches.open(CACHE).then(c => Promise.all(ASSETS.map(a => c.add(a).catch(() => {})))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {

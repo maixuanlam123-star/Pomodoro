@@ -6,9 +6,9 @@
 <title>Đồng hồ Pomodoro</title>
 <meta name="theme-color" content="#120605">
 <meta name="description" content="Đồng hồ Pomodoro 3D: tập trung 25 phút, nghỉ 5 phút.">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -33,6 +33,20 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px}
 h1{font-size:22px;font-weight:800;margin:0;display:flex;align-items:center;gap:10px;letter-spacing:-.01em}
 .logo{width:30px;height:30px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,#fff8 0 8%,transparent 9%),radial-gradient(circle at 40% 35%,var(--h1),var(--h2) 75%);box-shadow:0 4px 10px rgba(var(--glow),.45),inset 0 -3px 6px rgba(0,0,0,.35)}
 .pill{font-size:13px;font-weight:600;color:var(--soft);background:var(--glass);border:1px solid var(--edge);padding:6px 12px;border-radius:99px;white-space:nowrap}
+.hr{display:flex;gap:8px;align-items:center}
+.inst{border:0;cursor:pointer;color:#fff;font:700 13px "Be Vietnam Pro",sans-serif;min-height:36px;background:linear-gradient(180deg,var(--h1),var(--h2));box-shadow:0 4px 12px rgba(var(--glow),.4)}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:9;padding:12px}
+.sheet[hidden]{display:none}
+.sheet>div{width:100%;max-width:480px;max-height:85vh;overflow:auto;background:linear-gradient(180deg,#2a2a31,#17171b);border:1px solid var(--edge);border-radius:22px;padding:20px;box-shadow:0 -10px 40px rgba(0,0,0,.6)}
+.sheet h3{margin:0 0 8px;font-size:19px}
+.sheet ol{padding-left:20px;margin:8px 0}.sheet li{margin:6px 0}
+.sheet .tabs{display:flex;gap:4px;padding:4px;border-radius:12px;background:rgba(0,0,0,.35);margin:10px 0}
+.sheet .tabs button{flex:1;min-height:40px;border:0;border-radius:9px;background:none;color:var(--soft);font:600 13px "Be Vietnam Pro",sans-serif;cursor:pointer}
+.sheet .tabs button.on{color:#fff;background:linear-gradient(180deg,var(--h1),var(--h2))}
+.chk{font-size:14px;margin-top:12px;padding:12px;border-radius:12px;background:rgba(0,0,0,.3)}
+.chk div{display:flex;justify-content:space-between;gap:8px;padding:3px 0}
+.ok{color:#3ddc84}.bad{color:#ff6b5b}
+.close{margin-top:14px;width:100%;min-height:48px;border:0;border-radius:14px;color:#fff;font:700 16px "Be Vietnam Pro",sans-serif;background:linear-gradient(145deg,#3a3a42,#1f1f24);cursor:pointer}
 .modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:5px;border-radius:16px;background:rgba(0,0,0,.35);box-shadow:inset 0 2px 6px rgba(0,0,0,.5),0 1px 0 var(--edge)}
 .modes button{border:0;background:none;color:var(--soft);font:600 14px "Be Vietnam Pro",sans-serif;min-height:44px;border-radius:12px;cursor:pointer;white-space:nowrap;padding:0 4px;transition:background .3s,color .3s}
 .modes button.on{color:#fff;background:linear-gradient(180deg,var(--h1),var(--h2));box-shadow:0 6px 14px rgba(var(--glow),.35),inset 0 1px 0 rgba(255,255,255,.35)}
@@ -104,7 +118,7 @@ details[open] summary::after{transform:rotate(-135deg)}
 <main>
   <header>
     <h1><span class="logo"></span>Pomodoro</h1>
-    <span class="pill" id="round">Lượt 1/4</span>
+    <div class="hr"><button class="pill inst" id="instBtn" hidden>⬇ Cài app</button><span class="pill" id="round">Lượt 1/4</span></div>
   </header>
   <div class="modes" role="tablist">
     <button data-m="work" class="on">Tập trung</button>
@@ -156,6 +170,13 @@ details[open] summary::after{transform:rotate(-135deg)}
   </details>
 </main>
 <div class="toast" id="toast"></div>
+<div class="sheet" id="sheet" hidden><div>
+  <h3>Cài Pomodoro lên điện thoại</h3>
+  <div class="tabs" id="brTabs"><button data-b="samsung">Samsung Internet</button><button data-b="chrome">Chrome</button><button data-b="ios">iPhone</button></div>
+  <ol id="steps"></ol>
+  <div class="chk" id="chk">Đang kiểm tra file trên GitHub…</div>
+  <button class="close" id="sheetClose">Đóng</button>
+</div></div>
 <audio id="bgAudio" preload="auto" playsinline></audio>
 <script>
 {
@@ -238,7 +259,7 @@ function mediaMeta(){
   if(!('mediaSession' in navigator))return;
   try{
     navigator.mediaSession.metadata=new MediaMetadata({title:NAME[mode]+' · '+S[mode]+' phút',artist:S.task||'Pomodoro',album:'Đồng hồ Pomodoro',
-      artwork:[{src:'icons/icon-192.png',sizes:'192x192',type:'image/png'},{src:'icons/icon-512.png',sizes:'512x512',type:'image/png'}]});
+      artwork:[{src:'icon-192.png',sizes:'192x192',type:'image/png'},{src:'icon-512.png',sizes:'512x512',type:'image/png'}]});
     navigator.mediaSession.playbackState=running?'playing':'paused';
   }catch(e){}
 }
@@ -272,7 +293,7 @@ function beep(){
 }
 function notify(text){
   if(!S.noti||!('Notification' in window)||Notification.permission!=='granted'||!document.hidden)return;
-  const opt={body:text,icon:'icons/icon-192.png',badge:'icons/icon-192.png',vibrate:[500,200,500,200,500,200,800],
+  const opt={body:text,icon:'icon-192.png',badge:'icon-192.png',vibrate:[500,200,500,200,500,200,800],
     tag:'pomodoro',renotify:true,requireInteraction:true,silent:false};
   const fb=()=>{try{new Notification('⏰ Hết giờ — Pomodoro',opt)}catch(e){}};
   try{navigator.serviceWorker?navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification('⏰ Hết giờ — Pomodoro',opt):fb()).catch(fb):fb()}catch(e){fb()}
@@ -329,6 +350,37 @@ $('clearDay').onclick=()=>{S.done=0;S.min=0;S.cycle=0;save();render();toast('Đ�
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'){e.preventDefault();$('startBtn').click()}});
 total=left=S.work*60;render();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(running){step();wakeOn()}}});
+/* ---- Cài app ---- */
+const STEPS={
+  samsung:['Bấm nút menu ☰ ở góc dưới bên phải.','Chọn <b>Thêm trang vào</b> → <b>Màn hình chính</b>.','Hoặc: nếu trên thanh địa chỉ có biểu tượng ⬇ (tải về), bấm vào đó → <b>Cài đặt</b>.'],
+  chrome:['Bấm menu ⋮ ở góc trên bên phải.','Chọn <b>Cài đặt ứng dụng</b> (hoặc <b>Thêm vào màn hình chính</b> → <b>Cài đặt</b>).'],
+  ios:['Mở trang này bằng <b>Safari</b>.','Bấm nút Chia sẻ (ô vuông có mũi tên lên).','Chọn <b>Thêm vào MH chính</b> → <b>Thêm</b>.']
+};
+const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+let deferred=null;
+const ua=navigator.userAgent;
+const guess=/iPhone|iPad/.test(ua)?'ios':/SamsungBrowser/.test(ua)?'samsung':'chrome';
+function showSteps(b){$('steps').innerHTML=STEPS[b].map(x=>`<li>${x}</li>`).join('');document.querySelectorAll('#brTabs button').forEach(x=>x.classList.toggle('on',x.dataset.b===b))}
+$('brTabs').onclick=e=>{const b=e.target.closest('button');if(b)showSteps(b.dataset.b)};
+async function checkFiles(){
+  const files=['manifest.json','sw.js','icon-192.png','icon-512.png','icon-maskable.png','apple-touch-icon.png'];
+  const res=await Promise.all(files.map(f=>fetch(f,{cache:'no-store'}).then(r=>r.ok).catch(()=>false)));
+  const sw=!!(navigator.serviceWorker&&navigator.serviceWorker.controller);
+  const miss=files.filter((f,i)=>!res[i]);
+  $('chk').innerHTML='<b>Kiểm tra file:</b>'+files.map((f,i)=>`<div><span>${f}</span><span class="${res[i]?'ok':'bad'}">${res[i]?'✓ có':'✗ thiếu'}</span></div>`).join('')+
+    `<div><span>Chạy offline</span><span class="${sw?'ok':'bad'}">${sw?'✓ sẵn sàng':'… tải lại trang'}</span></div>`+
+    (miss.length?`<p class="bad" style="margin:8px 0 0">Thiếu ${miss.length} file. Hãy tải các file này lên cùng chỗ với index.html trên GitHub (không để trong thư mục con), đợi 1–2 phút rồi tải lại trang.</p>`:'<p class="ok" style="margin:8px 0 0">Đủ file. Nếu chưa thấy nút cài, hãy tải lại trang 1–2 lần.</p>');
+}
+function openSheet(){showSteps(guess);$('sheet').hidden=false;if(location.protocol.startsWith('http'))checkFiles();else $('chk').textContent='Hãy mở bản trên GitHub Pages để cài.'}
+$('sheetClose').onclick=()=>$('sheet').hidden=true;
+$('sheet').onclick=e=>{if(e.target.id==='sheet')$('sheet').hidden=true};
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('instBtn').hidden=false});
+window.addEventListener('appinstalled',()=>{$('instBtn').hidden=true;deferred=null;toast('Đã cài app lên màn hình chính')});
+$('instBtn').onclick=async()=>{
+  if(deferred){deferred.prompt();try{const r=await deferred.userChoice;if(r.outcome==='accepted')$('instBtn').hidden=true}catch(e){}deferred=null}
+  else openSheet();
+};
+if(!standalone)$('instBtn').hidden=false;
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 }
 </script>
