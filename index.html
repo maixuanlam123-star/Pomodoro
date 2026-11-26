@@ -109,6 +109,7 @@ details[open] summary::after{transform:rotate(-135deg)}
 .seg button.on{color:#fff;background:linear-gradient(180deg,var(--h1),var(--h2))}
 .test{min-height:44px;padding:0 14px;border:0;border-radius:12px;color:#fff;font:600 14px "Be Vietnam Pro",sans-serif;cursor:pointer;background:linear-gradient(145deg,#34343b,#1b1b20);box-shadow:0 2px 4px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12)}
 .hint{color:var(--soft);font-size:13px;margin:6px 0 0}
+.wide{width:100%;margin-top:12px}
 .reset{margin-top:6px;background:none;border:0;color:var(--soft);text-decoration:underline;font:14px "Be Vietnam Pro",sans-serif;cursor:pointer;min-height:44px;padding:0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(140px);background:linear-gradient(180deg,#2e2e35,#1a1a1f);color:#fff;border:1px solid var(--edge);padding:13px 20px;border-radius:14px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.5);transition:transform .35s;max-width:90vw;text-align:center}
 .toast.show{transform:translateX(-50%) translateY(0)}
@@ -162,10 +163,11 @@ details[open] summary::after{transform:rotate(-135deg)}
     <label class="tog">Tự chuyển sang phiên tiếp theo <input type="checkbox" id="auto"></label>
     <label class="tog">Chuông báo khi hết giờ <input type="checkbox" id="snd" checked></label>
     <div class="sounds"><span>Âm báo</span><div class="seg" id="sndSel"></div><button class="test" id="testBtn">Nghe thử</button></div>
+    <button class="test wide" id="test10">⏱ Thử báo thức sau 10 giây</button>
     <label class="tog">Chạy ngầm (chuông kêu cả khi tắt màn hình) <input type="checkbox" id="bg"></label>
     <label class="tog">Thông báo + rung khi hết giờ (lúc dùng app khác) <input type="checkbox" id="noti"></label>
     <label class="tog">Giữ màn hình luôn sáng khi chạy <input type="checkbox" id="wake"></label>
-    <p class="hint" id="bgHint">Khi bật chạy ngầm, chuông phát bằng âm lượng nhạc/media của điện thoại, kể cả khi máy đang để im lặng.</p>
+    <p class="hint" id="bgHint">Chuông phát bằng <b>âm lượng nhạc/media</b>. Muốn máy rung, hãy để điện thoại ở chế độ <b>Rung</b> hoặc <b>Âm thanh</b>, không để <b>Tắt tiếng</b>.</p>
     <button class="reset" id="clearDay">Xóa thống kê hôm nay</button>
   </details>
 </main>
@@ -188,7 +190,7 @@ let S={work:25,short:5,long:15,every:4,auto:false,snd:true,tone:'bell',noti:true
 try{Object.assign(S,JSON.parse(localStorage.getItem('pomo')||'{}'))}catch(e){}
 if(S.day!==today){S.day=today;S.done=0;S.min=0;S.cycle=0}
 const save=()=>{try{localStorage.setItem('pomo',JSON.stringify(S))}catch(e){}};
-let mode='work',left=S.work*60,total=left,running=false,endAt=0,tick=null,actx=null;
+let mode='work',left=S.work*60,total=left,running=false,endAt=0,tick=null;
 const R=80,C=2*Math.PI*R;
 $('ticks').innerHTML=Array.from({length:60},(_,i)=>{const a=i/60*2*Math.PI,big=i%5===0,r1=big?91:93,r2=96;
   return `<line x1="${100+r1*Math.cos(a)}" y1="${100+r1*Math.sin(a)}" x2="${100+r2*Math.cos(a)}" y2="${100+r2*Math.sin(a)}" stroke="rgba(255,255,255,${big?.45:.18})" stroke-width="${big?1.6:1}" stroke-linecap="round"/>`}).join('');
@@ -209,8 +211,9 @@ function render(){
   document.title=(running?fmt(left)+' · ':'')+(mode==='work'?'Tập trung':'Nghỉ')+' — Pomodoro';
 }
 function setMode(m,auto,keep){keep?halt():stop();mode=m;total=left=S[m]*60;render();if(auto&&S.auto)start()}
+let testing=false;
 function start(){
-  ensureAudio();askNoti();
+  stopAlarm();unlockAlarm();askNoti();
   running=true;endAt=Date.now()+left*1000;clearInterval(tick);tick=setInterval(step,250);render();
   if(S.bg){if(chiming)pendingLoad=true;else loadBg()}
   wakeOn();
@@ -219,27 +222,17 @@ function halt(){running=false;clearInterval(tick);wakeOff();render()}
 function stop(){halt();stopBg()}
 function step(){left=Math.max(0,Math.round((endAt-Date.now())/1000));render();if(left===0)finish()}
 const TONES={bell:'Chuông',chime:'Leng keng',beep:'Bíp'};
-// [tần số Hz, bắt đầu (giây), độ dài (giây), âm lượng]
-const NOTES={
-  bell:[0,1.1].flatMap(t=>[[660,t,1.6,.35],[1320,t,1.0,.12],[1980,t,.6,.06]]),
-  chime:[523.25,659.25,783.99,1046.5].map((f,i)=>[f,i*.18,1.2,.25]),
-  beep:[0,.35,.7].map(t=>[880,t,.3,.3])
+// Một chu kỳ âm: [tần số Hz, bắt đầu (giây), độ dài (giây), âm lượng]; lặp lại thành hồi chuông ~10 giây
+const CYCLE={
+  bell:{len:2.2,n:[[784,0,1.6,1],[1568,0,1.0,.35],[2352,0,.5,.15],[659,.55,1.5,.8],[1318,.55,.9,.3]]},
+  chime:{len:1.9,n:[523.25,659.25,783.99,1046.5].map((f,i)=>[f,i*.18,1.0,.8])},
+  beep:{len:1.1,n:[0,.2,.4].map(t=>[1000,t,.14,1])}
 };
-function ensureAudio(){
-  if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
-  if(actx&&actx.state==='suspended')actx.resume();
-}
-function play(tone){
-  if(!actx||!NOTES[tone])return;
-  try{NOTES[tone].forEach(([f,t,d,v])=>{
-    const o=actx.createOscillator(),g=actx.createGain(),at=actx.currentTime+t;
-    o.type='sine';o.frequency.value=f;
-    g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(v,at+.01);g.gain.exponentialRampToValueAtTime(.0001,at+d);
-    o.connect(g).connect(actx.destination);o.start(at);o.stop(at+d+.05);
-  })}catch(e){}
-}
-/* ---- Chạy ngầm: file WAV = khoảng lặng + chuông ---- */
-const SR=4000,bgA=$('bgAudio');let bgUrl=null,chiming=false,pendingLoad=false,bgSilence=0;
+const REPEAT=5;
+const NOTES={};for(const k in CYCLE){NOTES[k]=[];for(let r=0;r<REPEAT;r++)CYCLE[k].n.forEach(([f,t,d,v])=>NOTES[k].push([f,t+r*CYCLE[k].len,d,v]))}
+/* ---- Âm báo: file WAV 8 kHz (to, rõ, phát được trên mọi điện thoại) ---- */
+const SR=8000,bgA=$('bgAudio'),alarmA=new Audio();let bgUrl=null,alarmUrl=null,alarmTone='',chiming=false,pendingLoad=false,bgSilence=0;
+alarmA.preload='auto';
 function buildWav(silence,tone){
   const notes=NOTES[tone]||[];
   const tail=notes.length?Math.max(...notes.map(n=>n[1]+n[2]))+.3:.3;
@@ -249,11 +242,27 @@ function buildWav(silence,tone){
   dv.setUint32(24,SR,true);dv.setUint32(28,SR,true);dv.setUint16(32,1,true);dv.setUint16(34,8,true);str(36,'data');dv.setUint32(40,n,true);
   const mix=new Float32Array(Math.ceil(tail*SR)),off=Math.floor(silence*SR);
   for(const [f,t,d,v] of notes){const s0=Math.floor(t*SR),len=Math.floor(d*SR);
-    for(let i=0;i<len&&s0+i<mix.length;i++){const tt=i/SR;mix[s0+i]+=v*Math.min(1,tt/.01)*Math.exp(-5*tt/d)*Math.sin(2*Math.PI*f*tt)}}
+    for(let i=0;i<len&&s0+i<mix.length;i++){const tt=i/SR,ph=Math.sin(2*Math.PI*f*tt);
+      mix[s0+i]+=v*Math.min(1,tt/.005)*Math.exp(-4*tt/d)*(ph+.3*Math.sign(ph))}}
+  let peak=0;for(const x of mix)peak=Math.max(peak,Math.abs(x));const g=peak?126/peak:0;
   buf.fill(128,44);
-  for(let i=0;i<mix.length&&44+off+i<buf.length;i++)buf[44+off+i]=Math.max(0,Math.min(255,Math.round(128+mix[i]*190)));
+  for(let i=0;i<mix.length&&44+off+i<buf.length;i++)buf[44+off+i]=Math.max(0,Math.min(255,Math.round(128+mix[i]*g)));
   return new Blob([buf],{type:'audio/wav'});
 }
+function prepAlarm(){
+  if(alarmTone===S.tone&&alarmUrl)return;
+  if(alarmUrl)URL.revokeObjectURL(alarmUrl);
+  alarmTone=S.tone;alarmUrl=URL.createObjectURL(buildWav(0,S.tone));alarmA.src=alarmUrl;
+}
+function unlockAlarm(){ // gọi trong lúc bấm nút để điện thoại cho phép phát chuông sau này
+  prepAlarm();
+  try{alarmA.muted=true;const p=alarmA.play();p&&p.then(()=>{alarmA.pause();alarmA.currentTime=0;alarmA.muted=false}).catch(()=>{alarmA.muted=false})}catch(e){alarmA.muted=false}
+}
+function play(){
+  prepAlarm();alarmA.muted=false;
+  try{alarmA.currentTime=0;const p=alarmA.play();p&&p.catch(()=>{})}catch(e){}
+}
+function stopAlarm(){try{alarmA.pause();alarmA.currentTime=0}catch(e){}}
 const NAME={work:'Tập trung',short:'Nghỉ ngắn',long:'Nghỉ dài'};
 function mediaMeta(){
   if(!('mediaSession' in navigator))return;
@@ -288,8 +297,8 @@ let wl=null;
 async function wakeOn(){if(!S.wake||!running||document.hidden||!('wakeLock' in navigator))return;try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
 function wakeOff(){try{wl&&wl.release()}catch(e){}wl=null}
 function beep(){
-  if(S.snd&&!chiming)play(S.tone);
-  try{navigator.vibrate&&navigator.vibrate([300,120,300,120,300])}catch(e){}
+  if(S.snd&&!chiming)play();
+  try{navigator.vibrate&&navigator.vibrate([600,250,600,250,600,250,600,250,1000])}catch(e){}
 }
 function notify(text){
   if(!S.noti||!('Notification' in window)||Notification.permission!=='granted'||!document.hidden)return;
@@ -305,7 +314,13 @@ async function askNoti(){
 function toast(t){notify(t);const el=$('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500)}
 function finish(complete=true){
   if(!running&&complete&&left>0)return;
-  if(complete){chiming=S.bg&&S.snd&&!bgA.paused&&!bgA.ended;halt();beep()}else stop();
+  if(!complete&&testing){testing=false;stop();setMode(mode);return}
+  if(complete){
+    if(!document.hidden){try{bgA.pause()}catch(e){}chiming=false}
+    else chiming=S.bg&&S.snd&&!bgA.paused&&!bgA.ended;
+    halt();beep();
+    if(testing){testing=false;notify('Thử báo thức thành công!');toast('Đã thử xong báo thức');setMode(mode,false,true);return}
+  }else{stop();stopAlarm()}
   if(mode==='work'){
     if(complete){S.done++;S.min+=S.work}
     S.cycle++;save();
@@ -332,8 +347,9 @@ $('auto').checked=S.auto;$('auto').onchange=e=>{S.auto=e.target.checked;save()};
 $('snd').checked=S.snd;$('snd').onchange=e=>{S.snd=e.target.checked;save();if(running&&S.bg&&!chiming)loadBg()};
 $('sndSel').innerHTML=Object.entries(TONES).map(([k,l])=>`<button data-t="${k}">${l}</button>`).join('');
 const markTone=()=>document.querySelectorAll('#sndSel button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tone));markTone();
-$('sndSel').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.tone=b.dataset.t;save();markTone();if(running&&S.bg&&!chiming)loadBg();ensureAudio();play(S.tone)};
-$('testBtn').onclick=()=>{ensureAudio();play(S.tone)};
+$('sndSel').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.tone=b.dataset.t;save();markTone();if(running&&S.bg&&!chiming)loadBg();stopAlarm();play()};
+$('testBtn').onclick=()=>{if(!alarmA.paused){stopAlarm();return}play()};
+$('test10').onclick=()=>{stop();stopAlarm();testing=true;total=left=10;render();start();toast('10 giây nữa sẽ báo. Hãy tắt màn hình hoặc mở app khác để thử.');$('sets').closest('details').open=false;scrollTo({top:0,behavior:'smooth'})};
 $('bg').checked=S.bg;$('bg').onchange=e=>{S.bg=e.target.checked;save();if(S.bg&&running)loadBg();if(!S.bg)stopBg()};
 $('wake').checked=S.wake;$('wake').onchange=e=>{S.wake=e.target.checked;save();S.wake?wakeOn():wakeOff()};
 $('noti').checked=S.noti;
@@ -347,6 +363,7 @@ $('noti').onchange=async e=>{
   S.noti=e.target.checked;save();
 };
 $('clearDay').onclick=()=>{S.done=0;S.min=0;S.cycle=0;save();render();toast('Đã xóa thống kê hôm nay')};
+document.addEventListener('pointerdown',e=>{if(!alarmA.paused&&!e.target.closest('#testBtn,#sndSel'))stopAlarm()});
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'){e.preventDefault();$('startBtn').click()}});
 total=left=S.work*60;render();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(running){step();wakeOn()}}});

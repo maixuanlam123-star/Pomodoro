@@ -1,6 +1,6 @@
 // Service worker: lưu app để mở được khi không có mạng.
 // Mỗi lần sửa file, tăng số phiên bản để máy người dùng tải bản mới.
-const CACHE = 'pomodoro-v3';
+const CACHE = 'pomodoro-v4';
 const ASSETS = [
   './',
   './index.html',
